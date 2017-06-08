@@ -34,6 +34,7 @@ int main()
 
   PID pid;
   // TODO: Initialize the pid variable.
+  pid.Init(1.0, 0.0, 20.0);
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -51,21 +52,35 @@ int main()
           double speed = std::stod(j[1]["speed"].get<std::string>());
           double angle = std::stod(j[1]["steering_angle"].get<std::string>());
           double steer_value;
-          /*
-          * TODO: Calcuate steering value here, remember the steering value is
-          * [-1, 1].
-          * NOTE: Feel free to play around with the throttle and speed. Maybe use
-          * another PID controller to control the speed!
-          */
-          
-          // DEBUG
-          std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
+          pid.speed_ = speed;
+
+          // update error values
+          pid.UpdateError(cte);
+
+          // set steering angle based on error values
+          steer_value = pid.Steer();
+
+          // set throttle based on speed
+          double throttle = pid.Throttle();
+
+          // uncomment to run twiddle algorithm
+          // pid.Twiddle();
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
-          msgJson["throttle"] = 0.3;
-          auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+          msgJson["throttle"] = throttle;
+
+          std::string msg;
+
+          // if the car goes off the road, reset
+          if (fabs(cte) < 5.0)
+          {
+            msg = "42[\"steer\"," + msgJson.dump() + "]";
+          }
+          else
+          {
+            msg = "42[\"reset\", {}]";
+          }
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {
