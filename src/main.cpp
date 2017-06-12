@@ -63,8 +63,8 @@ int main()
           // set throttle based on speed
           double throttle = pid.Throttle();
 
-          // uncomment to run Twiddle algorithm
-          // pid.Twiddle();
+          // run Twiddle algorithm
+          pid.Twiddle();
 
           json msgJson;
           msgJson["steering_angle"] = steer_value;
@@ -79,7 +79,6 @@ int main()
           }
           else
           {
-            pid.err_ += 1e6;
             msg = "42[\"reset\", {}]";
           }
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
