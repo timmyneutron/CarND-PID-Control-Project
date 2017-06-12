@@ -17,6 +17,9 @@ void PID::Init(double Kp, double Ki, double Kd) {
 	Kp_ = Kp;
 	Ki_ = Ki;
 	Kd_ = Kd;
+	best_Kp_ = Kp_;
+	best_Ki_ = Ki_;
+	best_Kd_ = Kd_;
 
 	// initialize parameter array
 	p_[0] = &Kp_;
@@ -24,9 +27,9 @@ void PID::Init(double Kp, double Ki, double Kd) {
 	p_[2] = &Kd_;
 
 	// initialize delta values for parameters
-	dp_[0] = 0.1;
-	dp_[1] = 0.1;
-	dp_[2] = 1.0;
+	dp_[0] = 1.0;
+	dp_[1] = 2.0;
+	dp_[2] = 5.0;
 
 	// initialize error
 	p_error_ = 0;
@@ -90,7 +93,7 @@ double PID::Steer() {
 
 double PID::Throttle() {
 	// set throttle
-	double throttle = 0.5 + .1 * (50 - speed_);
+	double throttle = 0.5 + .5 * (50 - speed_);
 
 	return throttle;
 }
@@ -110,10 +113,15 @@ void PID::Twiddle() {
 	cout << "CTE: " << p_error_ << endl;
 	cout << "Current error: " << err_ << endl;
 	cout << "Best error: " << best_err_ << endl;
+	cout << "Best Kp: " << best_Kp_ << endl;
+	cout << "Best Ki: " << best_Ki_ << endl;
+	cout << "Best Kd: " << best_Kd_ << endl;
+
 
 	// wait 10 seconds for car to get up to speed
 	if (!twiddle_is_init_ && d_time.count() < 10.0)
 	{
+		err_ = 0;
 		return;
 	}
 	// start twiddle algorithm
@@ -121,16 +129,16 @@ void PID::Twiddle() {
 	{
 		twiddle_is_init_ = true;
 		orig_time_ = chrono::high_resolution_clock::now();
-		// *p_[which_K_] += dp_[which_K_];
 		return;
 	}
 	// reset algorithm if total error is greater than current best error,
 	// or if time elapsed is over 30 seconds
-	else if (err_ > best_err_ || d_time.count() > 30.0)
+	else if (err_ > best_err_ || d_time.count() > 60.0)
 	{
 		// if error is lower than current best error,
 		// set new values for best gains and update
 		// delta values and shift to next gain
+
 		if (err_ < best_err_)
 		{
 			best_err_ = err_;
